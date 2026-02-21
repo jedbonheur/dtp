@@ -44,6 +44,7 @@ A platform that lets customers track deliveries in real time, couriers update lo
 ## Tech Stack
 
 ### Backend
+
 - **Framework**: FastAPI (per service), Pydantic settings
 - **Database**: PostgreSQL (per-service DB or schemas), SQLAlchemy/SQLModel
 - **Migrations**: Alembic
@@ -52,6 +53,7 @@ A platform that lets customers track deliveries in real time, couriers update lo
 - **Real-Time**: WebSocket (or SSE)
 
 ### Infrastructure & DevOps
+
 - **Containerization**: Docker + docker-compose (local)
 - **Orchestration**: Kubernetes (optional later) + Helm (optional)
 - **Gateway**: Nginx / API Gateway (or Traefik)
@@ -59,6 +61,7 @@ A platform that lets customers track deliveries in real time, couriers update lo
 - **Observability**: OpenTelemetry + Prometheus + Grafana + Loki
 
 ### Optional (Impressive Additions)
+
 - PostGIS for geospatial queries (nearby couriers, zones)
 - Object storage (S3/R2) for proof-of-delivery images
 
@@ -70,14 +73,14 @@ Each service owns its own data. Other services access it via API calls or Kafka 
 
 ### Core Services (MVP)
 
-| Service | Purpose | Database |
-|---------|---------|----------|
-| **API Gateway / BFF** | Public entry point, auth, rate-limit, routing | — |
-| **Auth & Users Service** | Users, roles (customer/courier/admin), JWT issuing/validation | PostgreSQL |
-| **Shipments Service** | Shipment creation, addresses, package details, tracking code | PostgreSQL |
-| **Dispatch Service** | Assignment logic (manual first, later auto), courier availability | PostgreSQL |
-| **Tracking Service** | Location ingest, status timeline, "current state" reads (hot path) | PostgreSQL + Redis |
-| **Notifications Service** | Subscribes to events → sends email/push/webhooks | Optional (stateless) |
+| Service                   | Purpose                                                            | Database             |
+| ------------------------- | ------------------------------------------------------------------ | -------------------- |
+| **API Gateway / BFF**     | Public entry point, auth, rate-limit, routing                      | —                    |
+| **Auth & Users Service**  | Users, roles (customer/courier/admin), JWT issuing/validation      | PostgreSQL           |
+| **Shipments Service**     | Shipment creation, addresses, package details, tracking code       | PostgreSQL           |
+| **Dispatch Service**      | Assignment logic (manual first, later auto), courier availability  | PostgreSQL           |
+| **Tracking Service**      | Location ingest, status timeline, "current state" reads (hot path) | PostgreSQL + Redis   |
+| **Notifications Service** | Subscribes to events → sends email/push/webhooks                   | Optional (stateless) |
 
 ### Later Services (Phase 5+)
 
@@ -102,6 +105,7 @@ Each service owns its own data. Other services access it via API calls or Kafka 
 ### Event Standards
 
 Every event includes:
+
 - `event_id` (UUID)
 - `event_type`
 - `occurred_at`
@@ -109,6 +113,7 @@ Every event includes:
 - `producer`, `version`
 
 **Rules:**
+
 - Consumers must be idempotent (safe to process duplicates).
 - Use Outbox pattern in producer services (write DB + publish event reliably).
 
@@ -143,11 +148,13 @@ Every event includes:
 ## Build Phases & Milestones
 
 ### Phase 0: Product & Architecture Freeze (1–2 days)
+
 - Define statuses, roles, event list, topic naming, service boundaries
 - Decide DB per service + local docker-compose architecture
 - **Exit**: Architecture diagram + topic list + API list written
 
 ### Phase 1: Repo + Dev Foundation (Must Be Solid)
+
 - Monorepo with `/services/*`
 - docker-compose: Postgres, Redis, Kafka (+ optional Redpanda Console)
 - Shared tooling: lint/format, pre-commit, Makefile, env templates
@@ -155,24 +162,28 @@ Every event includes:
 - **Exit**: `docker compose up` runs everything, one service boots cleanly
 
 ### Phase 2: Auth & Users (RBAC + JWT)
+
 - Auth service: register/login, JWT, refresh tokens
 - Roles: customer, courier, admin
 - Gateway validates JWT
 - **Exit**: Protected endpoints working; role-based access enforced
 
 ### Phase 3: Shipments (Core Domain)
+
 - Shipments service: create shipment, generate tracking code, read shipment
 - Produce Kafka event `shipment.created`
 - Notifications listens (mocked initially)
 - **Exit**: Create shipment → stored in DB → event published → consumer receives
 
 ### Phase 4: Dispatch (Assignment Workflow)
+
 - Dispatch service: assign courier to shipment
 - Event `shipment.assigned`
 - Courier "inbox" endpoint
 - **Exit**: Admin assigns → dispatch DB updated → courier sees assignment
 
 ### Phase 5: Tracking (Real-Time + Cache)
+
 - Tracking ingest endpoint for courier GPS pings
 - Store history (DB) + store "latest state" in Redis
 - Status updates endpoint (picked up, in transit, delivered…)
@@ -181,12 +192,14 @@ Every event includes:
 - **Exit**: Courier sends location → Redis latest updates → customer sees live movement
 
 ### Phase 6: Notifications (Real Channels)
+
 - Email provider integration (or mocked adapter with logs)
 - Notification preferences
 - Triggers from events (assigned, out-for-delivery, delivered, failed)
 - **Exit**: Key events reliably produce notifications (with retry + DLQ)
 
 ### Phase 7: Observability & Resiliency (Make It "Prod")
+
 - OpenTelemetry tracing across gateway → services → Kafka consumers
 - Metrics + dashboards (request latency, consumer lag, error rates)
 - Structured logging with correlation_id
@@ -194,6 +207,7 @@ Every event includes:
 - **Exit**: Trace one shipment end-to-end; see failures clearly
 
 ### Phase 8: Security Hardening + Performance
+
 - Rate limiting (gateway), input validation, least-privilege service accounts
 - Secrets handling (env + vault-like later)
 - Caching strategy for hot reads
@@ -201,6 +215,7 @@ Every event includes:
 - **Exit**: System handles load; security basics in place
 
 ### Phase 9: Deployment (Staging → Production)
+
 - CI/CD pipeline: test → build images → push → deploy
 - IaC (Terraform optional) + staging environment
 - Versioned configs, DB migrations in pipeline
