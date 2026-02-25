@@ -1,4 +1,19 @@
 services:
+  # THE GLOBAL DEV HUB
+  dev:
+    image: mcr.microsoft.com/devcontainers/python:3.11
+    environment:
+      - ENV=dev
+    # This keeps the container running so VS Code can stay attached
+    command: sleep infinity
+    networks:
+      - delivery-net
+    depends_on:
+      - postgres
+      - redis
+      - redpanda
+
+  # INFRASTRUCTURE
   postgres:
     image: postgres:16
     container_name: dtp-postgres
@@ -7,11 +22,13 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dtp}
       POSTGRES_DB: ${POSTGRES_DB:-dtp}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - '${POSTGRES_PORT:-5432}:5432'
+    networks:
+      - delivery-net
     volumes:
       - dtp_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -20,9 +37,11 @@ services:
     image: redis:7
     container_name: dtp-redis
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - '${REDIS_PORT:-6379}:6379'
+    networks:
+      - delivery-net
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 3s
       retries: 10
@@ -35,13 +54,13 @@ services:
       - start
       - --overprovisioned
       - --smp
-      - "1"
+      - '1'
       - --memory
-      - "1G"
+      - '1G'
       - --reserve-memory
-      - "0M"
+      - '0M'
       - --node-id
-      - "0"
+      - '0'
       - --check=false
       - --kafka-addr
       - PLAINTEXT://0.0.0.0:9092
@@ -52,10 +71,12 @@ services:
       - --advertise-pandaproxy-addr
       - redpanda:8082
     ports:
-      - "${KAFKA_PORT:-9092}:9092"
-      - "${PANDAPROXY_PORT:-8082}:8082"
+      - '${KAFKA_PORT:-9092}:9092'
+      - '${PANDAPROXY_PORT:-8082}:8082'
+    networks:
+      - delivery-net
     healthcheck:
-      test: ["CMD-SHELL", "rpk cluster health | grep -q 'Healthy:.*true'"]
+      test: ['CMD-SHELL', "rpk cluster health | grep -q 'Healthy:.*true'"]
       interval: 10s
       timeout: 5s
       retries: 15
@@ -69,7 +90,25 @@ services:
     environment:
       KAFKA_BROKERS: redpanda:9092
     ports:
-      - "${REDPANDA_CONSOLE_PORT:-8080}:8080"
+      - '${REDPANDA_CONSOLE_PORT:-8080}:8080'
+    networks:
+      - delivery-net
+
+  # tracking service
+  tracking-service:
+    build:
+      context: ./services/tracking-service
+    env_file:
+      - ./.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - '${TRACKING_SERVICE_PORT:-8001}:8000'
+    networks:
+      - delivery-net
 
 volumes:
   dtp_postgres_data: {}
+networks:
+  delivery-net: {}

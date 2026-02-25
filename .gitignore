@@ -22,3 +22,8 @@ build/
 
 # logs
 *.log
+
+#others
+
+diagrams/
+md/

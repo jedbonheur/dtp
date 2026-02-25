@@ -1,0 +1,10 @@
+services:
+  tracking-service:
+    volumes:
+      # Mount your local code into the container so edits show immediately
+      - ./services/tracking-service:/app:cached
+
+    # Dev command: migrate then run with hot reload
+    command: >
+      bash -lc "alembic upgrade head &&
+      uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app"
