@@ -145,7 +145,7 @@ class ShipmentEventResponse(BaseModel):
     triggered_by_user_id: str
     triggered_by_role: str
     description: str
-    metadata: Optional[dict] = None
+    event_metadata: Optional[dict] = None
     
     class Config:
         from_attributes = True

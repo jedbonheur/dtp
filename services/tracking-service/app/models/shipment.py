@@ -103,6 +103,38 @@ class Shipment(Base):
     updated_at:         Mapped[datetime | None] = mapped_column(DateTime,    nullable=True)
     updated_by:         Mapped[str | None]      = mapped_column(String(255), nullable=True)
 
+    # ── VIRTUAL PROPERTIES (for Pydantic serialisation) ──
+    # ShipmentResponse expects nested sender/recipient/package objects.
+    # These properties assemble them from the flat columns so that
+    # ShipmentResponse.from_orm(shipment) works without any changes to
+    # the schema or the routes.
+
+    @property
+    def sender(self) -> dict:
+        return {
+            "name": self.sender_name,
+            "email": self.sender_email,
+            "phone": self.sender_phone,
+            "address": self.sender_address,
+        }
+
+    @property
+    def recipient(self) -> dict:
+        return {
+            "name": self.recipient_name,
+            "email": self.recipient_email,
+            "phone": self.recipient_phone,
+            "address": self.recipient_address,
+        }
+
+    @property
+    def package(self) -> dict:
+        return {
+            "description": self.description,
+            "weight_kg": self.weight_kg,
+            "dimensions_cm": self.dimensions_cm,
+        }
+
     # ── RELATIONSHIP ──────────────────────────────────────
     # This is NOT a database column — it's a SQLAlchemy instruction:
     # "when I load a Shipment, also load its ShipmentEvents"
@@ -170,7 +202,7 @@ class ShipmentEvent(Base):
     # location_updated → {"lat": 40.7, "lng": -74.0, "speed_kmh": 45}
     # shipment_assigned → {"driver_name": "John", "estimated_delivery": "..."}
     # We use JSON here because the shape changes per event type
-    metadata: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    event_metadata: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     # Back-reference to parent Shipment
     # back_populates="events" must match the name in Shipment.events above

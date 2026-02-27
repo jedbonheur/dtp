@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     
     service_name: str = "tracking-service"
     service_version: str = "1.0.0"
+    service_port: int = 8000
     environment: str = "dev"  # dev, staging, prod
     
     # ════════════════════════════════════════════════════════════
